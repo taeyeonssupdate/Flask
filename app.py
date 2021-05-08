@@ -1,67 +1,29 @@
-from flask import Flask, render_template, url_for, request, redirect
-from flask_sqlalchemy import SQLAlchemy
+from flask_bootstrap import Bootstrap
+from flask import Flask, render_template
+from flask_moment import Moment
 from datetime import datetime
+from flask_wtf import FlaskForm, Form
+from wtforms import StringField, SubmitField
+from wtforms.validators import Required
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
-db = SQLAlchemy(app)
+bootstrap = Bootstrap(app)
+moment = Moment(app)
+app.config['SECRET_KEY'] = '"askljdgajskldhgajhskh'
 
 
-class Todo(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200), nullable=False)
-    date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def __repr__(self):
-        return '<Task %r>' % self.id
-
-
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/index')
 def index():
-    if request.method == 'POST':
-        task_content = request.form['content']
-        new_task = Todo(content=task_content)
+    return render_template('index.html', current_time=datetime.utcnow()), 200
 
-        try:
-            db.session.add(new_task)
-            db.session.commit()
-            return redirect('/')
-        except:
-            return 'There was an issue adding your task'
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
-    else:
-        tasks = Todo.query.order_by(Todo.date_created).all()
-        return render_template('index.html', tasks=tasks)
+@app.errorhandler(500)
+def server_error(e):
+    return render_template('500.html'), 500
 
-
-@app.route('/delete/<int:id>')
-def delete(id):
-    task_to_delete = Todo.query.get_or_404(id)
-
-    try:
-        db.session.delete(task_to_delete)
-        db.session.commit()
-        return redirect('/')
-    except:
-        return 'There was a problem deleting that task'
-
-
-@app.route('/update/<int:id>', methods=['GET', 'POST'])
-def update(id):
-    task = Todo.query.get_or_404(id)
-
-    if request.method == 'POST':
-        task.content = request.form['content']
-
-        try:
-            db.session.commit()
-            return redirect('/')
-        except:
-            return 'There was an issue updating your task'
-
-    else:
-        return render_template('update.html', task=task)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
